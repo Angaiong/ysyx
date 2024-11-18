@@ -55,14 +55,37 @@ static int cmd_q(char *args) {
 static int cmd_si(char *args) {
   /* extract the first argument */
   char *arg = strtok(NULL, " ");
+  // printf("%ld\n",strlen(arg));
+  int a=0;
+  int flag=0;
+  if (arg != NULL) 
+  {
+    for(a=0;a<strlen(arg);a++)
+    {
+      if( arg[a]>= 48 && arg[a]<= 57)//[0-9]
+      {
+        flag=1;
+      }
+      // printf("flag=%d\narg=%d\n",flag,arg[a]);
+    }
+  }
   if (arg == NULL) {
     cpu_exec(1);
-  }else{
+  }else if(flag){
     int num=atoi(arg);
     cpu_exec(num);
+    flag=0;
+  }else{
+    printf("error:(si N)N is a number\n");
   }
 	return 0;
 };//newsi
+
+void isa_reg_display();//newinfo
+static int cmd_info(char *args) {
+  isa_reg_display();
+  return 0;
+};//newinfo
 
 static int cmd_help(char *args);
 
@@ -74,7 +97,8 @@ static struct {
   { "help", "Display information about all supported commands", cmd_help },
   { "c", "Continue the execution of the program", cmd_c },
   { "q", "Exit NEMU", cmd_q   },
-  {	"si", "N-step execution", cmd_si },//newsi
+  {	"si", "si [N]:N-step execution", cmd_si },//newsi
+  { "info", "info r:Print register status\n\tinfo w:Print watch information", cmd_info},//newinfo
 
 
   /* TODO: Add more commands */
