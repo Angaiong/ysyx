@@ -83,7 +83,20 @@ static int cmd_si(char *args) {
 
 void isa_reg_display();//newinfo
 static int cmd_info(char *args) {
-  isa_reg_display();
+  char *arg = strtok(NULL, " ");
+  if (arg == NULL) {
+    printf("error:(info r/w)\n");
+  }
+  else if (*arg == 'r') 
+  {
+    isa_reg_display();
+  }else if (*arg == 'w') 
+  {
+    printf("还没写\n");
+  }else
+  {
+    printf("error:(info r/w)\n");
+  }
   return 0;
 };//newinfo
 
