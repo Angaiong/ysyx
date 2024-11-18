@@ -52,6 +52,18 @@ static int cmd_q(char *args) {
   return -1;
 }
 
+static int cmd_si(char *args) {
+  /* extract the first argument */
+  char *arg = strtok(NULL, " ");
+  if (arg == NULL) {
+    cpu_exec(1);
+  }else{
+    int num=atoi(arg);
+    cpu_exec(num);
+  }
+	return 0;
+};//newsi
+
 static int cmd_help(char *args);
 
 static struct {
@@ -61,7 +73,9 @@ static struct {
 } cmd_table [] = {
   { "help", "Display information about all supported commands", cmd_help },
   { "c", "Continue the execution of the program", cmd_c },
-  { "q", "Exit NEMU", cmd_q },
+  { "q", "Exit NEMU", cmd_q   },
+  {	"si", "N-step execution", cmd_si },//newsi
+
 
   /* TODO: Add more commands */
 
@@ -92,7 +106,7 @@ static int cmd_help(char *args) {
   return 0;
 }
 
-void sdb_set_batch_mode() {
+void sdb_set_batch_mode() { 
   is_batch_mode = true;
 }
 
