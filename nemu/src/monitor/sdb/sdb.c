@@ -99,7 +99,44 @@ static int cmd_info(char *args) {
   }
   return 0;
 };//newinfo
+static int cmd_x(char *args)
+{
+  extern word_t vaddr_read();
 
+  // printf("%x\n",vaddr_read(2147483648,4));
+
+  char *arg = strtok(NULL, " ");
+  char *arg2 = strtok(NULL, " ");
+  int n=0;
+  int num=0;
+  if (arg==NULL||arg2==NULL)
+  {
+    printf("error:(x N EXPR)\n");
+  }else {
+    sscanf(arg2, "%x", &num);
+    sscanf(arg, "%x", &n);
+  }
+  if((int)num==(int)0x80000000)
+  {
+    for(int b=0;b<n;b++)
+    {
+      printf("0x%x:",num);
+      for(int a=0;a<4;a++)
+      {
+        printf(" %02x",vaddr_read(num+3-a,1));
+      }
+      printf("\n");
+      num=num+4;
+    }
+  }else{
+    printf("还没写\n");
+  }
+  
+  // printf("%x\n",vaddr_read(0x80000000,4));
+  // printf("%x\n",vaddr_read(0x80000004,4));
+  // printf("%x\n",vaddr_read(0x80000008,4));
+  return 0;
+}//newx
 static int cmd_help(char *args);
 
 static struct {
@@ -112,6 +149,7 @@ static struct {
   { "q", "Exit NEMU", cmd_q   },
   {	"si", "si [N]:N-step execution", cmd_si },//newsi
   { "info", "info r:Print register status\n\tinfo w:Print watch information", cmd_info},//newinfo
+  { "x", "x N EXPR:Evaluate the expression EXPR and use the result as the starting memory Address, output N consecutive 4 bytes in hexadecimal form",cmd_x},//newx
 
 
   /* TODO: Add more commands */
