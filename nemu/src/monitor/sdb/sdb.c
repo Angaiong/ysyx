@@ -131,12 +131,16 @@ static int cmd_x(char *args)
   }else{
     printf("还没写\n");
   }
-  
-  // printf("%x\n",vaddr_read(0x80000000,4));
-  // printf("%x\n",vaddr_read(0x80000004,4));
-  // printf("%x\n",vaddr_read(0x80000008,4));
   return 0;
 }//newx
+static int cmd_p(char *args)
+{
+  char *arg = strtok(NULL, "");
+  bool *success=0;
+  // printf("%s",arg);
+  expr(arg,success);
+  return 0;
+}
 static int cmd_help(char *args);
 
 static struct {
@@ -150,7 +154,7 @@ static struct {
   {	"si", "si [N]:N-step execution", cmd_si },//newsi
   { "info", "info r:Print register status\n\tinfo w:Print watch information", cmd_info},//newinfo
   { "x", "x N EXPR:Evaluate the expression EXPR and use the result as the starting memory Address, output N consecutive 4 bytes in hexadecimal form",cmd_x},//newx
-
+  { "p", "p EXPR:Find the value of the expression EXPR", cmd_p},//newp
 
   /* TODO: Add more commands */
 
