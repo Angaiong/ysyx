@@ -30,9 +30,51 @@ static char *code_format =
 "  printf(\"%%u\", result); "
 "  return 0; "
 "}";
-
-static void gen_rand_expr() {
-  buf[0] = '\0';
+int a=0;
+int choose(int n) {
+    return rand() % n;
+}
+void gen_rand_op()
+{
+  char operators[] = {'+', '-', '*', '/'};
+  int ran = rand() % 4; // 生成0到3之间的随机整数
+  if (choose(2)) buf[++a] = ' ';
+  buf[++a] = operators[ran];
+  if (choose(2)) buf[++a] = ' ';
+}
+void gen_num()
+{
+  int num = rand() % 10;
+  if (choose(2)) buf[++a] = ' ';
+  buf[++a]=num+'0';
+}
+void gen(char c)
+{
+  if (choose(2)) buf[++a] = ' ';
+  buf[++a]=c;
+}
+static void gen_rand_expr(int depth, int max_depth) {
+  // buf[0] = '\0';
+  if (depth >= max_depth) 
+  {
+    gen_num(); // 如果达到最大深度，只生成一个数字
+    return;
+  }
+  switch (choose(3)) {
+    case 0: 
+      gen_num(); 
+      break;
+    case 1: 
+      gen('('); 
+      gen_rand_expr(depth+1,max_depth); 
+      gen(')'); 
+      break;
+    default: 
+      gen_rand_expr(depth+1,max_depth); 
+      gen_rand_op(); 
+      gen_rand_expr(depth+1,max_depth); 
+      break;
+  }
 }
 
 int main(int argc, char *argv[]) {
@@ -44,8 +86,11 @@ int main(int argc, char *argv[]) {
   }
   int i;
   for (i = 0; i < loop; i ++) {
-    gen_rand_expr();
-
+    a=-1;
+    memset(buf, 0, sizeof(buf));
+    // buf[a]='\'';
+    gen_rand_expr(0,5);
+    buf[++a]='\0';
     sprintf(code_buf, code_format, buf);
 
     FILE *fp = fopen("/tmp/.code.c", "w");
@@ -56,14 +101,16 @@ int main(int argc, char *argv[]) {
     int ret = system("gcc /tmp/.code.c -o /tmp/.expr");
     if (ret != 0) continue;
 
-    fp = popen("/tmp/.expr", "r");
+    fp = popen("/tmp/.expr", "r");//读取了输出的内容 printf(\"%%u\", result);
     assert(fp != NULL);
 
     int result;
     ret = fscanf(fp, "%d", &result);
     pclose(fp);
-
-    printf("%u %s\n", result, buf);
+        if (strstr(buf, "/") && strstr(buf, "0")) {
+        continue;
+    }
+    printf("%d %s\n", result, buf);//原本长这样printf("%u %s\n", result, buf);
   }
   return 0;
 }

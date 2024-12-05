@@ -19,7 +19,7 @@
  * Type 'man regex' for more information about POSIX regex functions.
  */
 #include <regex.h>
-
+#include <stdio.h>
 enum {
   TK_NOTYPE = 256, TK_EQ,TK_INT,
 
@@ -73,7 +73,7 @@ typedef struct token {
   char str[32];
 } Token;
 
-static Token tokens[32] __attribute__((used)) = {};
+static Token tokens[200] __attribute__((used)) = {};
 static int nr_token __attribute__((used))  = 0;
 
 static bool make_token(char *e) {
@@ -102,7 +102,6 @@ static bool make_token(char *e) {
          * to record the token in the array `tokens'. For certain types
          * of tokens, some extra actions should be performed.
          */
-
         switch (rules[i].token_type) {
           case TK_INT:
             for(int a=0;here<position;here++,a++)
@@ -115,7 +114,6 @@ static bool make_token(char *e) {
           nr_token+=1;  
           //TODO();
         }
-
         break;
       }
     }
@@ -125,7 +123,6 @@ static bool make_token(char *e) {
       return false;
     }
   }
-
   return true;
 }
 bool check_parentheses(int p, int q)//括号判断
@@ -170,18 +167,23 @@ typedef struct {
 int proflag=0;
 proer pro(int p,int q)//识别主运算符
 {
+  proflag=0;
   int sel=1;
   proer resulta={0,0};
   proer resultb={0,0};
   for(;p<q;p++)  
-  {
+  { 
+    sel=1;
     if(tokens[p].type=='(')//排除括号内容
     while(sel)
     {
       p++;
       if(tokens[p].type==')')
       {
-        sel=0;
+        sel-=1;
+      }else if(tokens[p].type=='(')
+      {
+        sel+=1;
       }
     }
     //排除非运算符      //判断符号优先级
@@ -198,12 +200,13 @@ proer pro(int p,int q)//识别主运算符
       resultb.op_type=tokens[p].type;
     }
   }
-  if(resulta.op==0)
-  {
-    return resultb;
-  }else
+  // printf("resulta.op=%d\nresultb.op=%d\n",resulta.op,resultb.op);
+  if(resultb.op==0)
   {
     return resulta;
+  }else
+  {
+    return resultb;
   }
 }
 
@@ -246,17 +249,30 @@ uint32_t eval(int p, int q)//递归求值
     {
       op_type=result.op_type;
       op=result.op;
-
+      int original_p = p;
+      int original_q = q;
       int val1=0;int val2=0;
 
       val1 = eval(p, op - 1);
+      p = original_p;
+      q = original_q;
       val2 = eval(op + 1, q);
       switch (op_type) 
       {
         case '+': return val1 + val2;
         case '-': return val1 - val2;
         case '*': return val1 * val2;
-        case '/': return val1 / val2;
+        case '/': 
+        if (val2 == 0) 
+        {
+          printf("Error: Division by zero\n");
+          tf = false;
+          return 0; // 或者返回一个特定的错误值
+        } 
+        else 
+        {
+          return val1 / val2;
+        }
         default: assert(0);
       }
     }
@@ -264,21 +280,31 @@ uint32_t eval(int p, int q)//递归求值
   tf=false;
   return 0;
 }
-
+void remove_spaces(char* str) {
+    int i, j = 0;
+    int len = strlen(str);
+    for (i = 0; i < len; i++) {
+        if (str[i] != ' ') {
+            str[j++] = str[i];
+        }
+    }
+    str[j] = '\0'; // Null-terminate the modified string
+}//new remove_spaces
 word_t expr(char *e, bool *success) {
+  remove_spaces(e);//new remove_spaces
   if (!make_token(e)) {
     *success = false;
     return 0;
   }
-
   /* TODO: Insert codes to evaluate the expression. */
   // eval(1,nr_token);
-  int result=eval(0,nr_token-1);
+  int expr_result=eval(0,nr_token-1);
   if(tf==true)
-  printf(":%d\n",result);
+  printf(":%d\n",expr_result);
   else
   printf("error\n");
   // TODO();
 
-  return 0;
+  // return 0;
+  return expr_result;//for test
 }

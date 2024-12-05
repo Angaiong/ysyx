@@ -116,7 +116,7 @@ static int cmd_x(char *args)
     sscanf(arg2, "%x", &num);
     sscanf(arg, "%x", &n);
   }
-  if((int)num==(int)0x80000000)
+  if(1)//(int)num==(int)0x80000000)
   {
     for(int b=0;b<n;b++)
     {
@@ -137,8 +137,14 @@ static int cmd_p(char *args)
 {
   char *arg = strtok(NULL, "");
   bool *success=0;
-  // printf("%s",arg);
-  expr(arg,success);
+  if(arg==NULL)
+  {
+    printf("p %s\n",arg);
+  }
+  else
+  {
+    expr(arg,success);
+  }
   return 0;
 }
 static int cmd_help(char *args);
