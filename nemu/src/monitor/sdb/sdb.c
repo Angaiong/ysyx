@@ -52,6 +52,101 @@ static int cmd_q(char *args) {
   return -1;
 }
 
+static int cmd_si(char *args) {
+  /* extract the first argument */
+  char *arg = strtok(NULL, " ");
+  // printf("%ld\n",strlen(arg));
+  int a=0;
+  int flag=0;
+  if (arg != NULL) 
+  {
+    for(a=0;a<strlen(arg);a++)
+    {
+      if( arg[a]>= 48 && arg[a]<= 57)//[0-9]
+      {
+        flag=1;
+      }
+      // printf("flag=%d\narg=%d\n",flag,arg[a]);
+    }
+  }
+  if (arg == NULL) {
+    cpu_exec(1);
+  }else if(flag){
+    int num=atoi(arg);
+    cpu_exec(num);
+    flag=0;
+  }else{
+    printf("error:(si N)N is a number\n");
+  }
+	return 0;
+};//newsi
+
+void isa_reg_display();//newinfo
+static int cmd_info(char *args) {
+  char *arg = strtok(NULL, " ");
+  if (arg == NULL) {
+    printf("error:(info r/w)\n");
+  }
+  else if (*arg == 'r') 
+  {
+    isa_reg_display();
+  }else if (*arg == 'w') 
+  {
+    printf("还没写\n");
+  }else
+  {
+    printf("error:(info r/w)\n");
+  }
+  return 0;
+};//newinfo
+static int cmd_x(char *args)
+{
+  extern word_t vaddr_read();
+
+  // printf("%x\n",vaddr_read(2147483648,4));
+
+  char *arg = strtok(NULL, " ");
+  char *arg2 = strtok(NULL, " ");
+  int n=0;
+  int num=0;
+  if (arg==NULL||arg2==NULL)
+  {
+    printf("error:(x N EXPR)\n");
+  }else {
+    sscanf(arg2, "%x", &num);
+    sscanf(arg, "%x", &n);
+  }
+  if(1)//(int)num==(int)0x80000000)
+  {
+    for(int b=0;b<n;b++)
+    {
+      printf("0x%x:",num);
+      for(int a=0;a<4;a++)
+      {
+        printf(" %02x",vaddr_read(num+3-a,1));
+      }
+      printf("\n");
+      num=num+4;
+    }
+  }else{
+    printf("还没写\n");
+  }
+  return 0;
+}//newx
+static int cmd_p(char *args)
+{
+  char *arg = strtok(NULL, "");
+  bool *success=0;
+  if(arg==NULL)
+  {
+    printf("p %s\n",arg);
+  }
+  else
+  {
+    expr(arg,success);
+  }
+  return 0;
+}
 static int cmd_help(char *args);
 
 static struct {
@@ -61,7 +156,11 @@ static struct {
 } cmd_table [] = {
   { "help", "Display information about all supported commands", cmd_help },
   { "c", "Continue the execution of the program", cmd_c },
-  { "q", "Exit NEMU", cmd_q },
+  { "q", "Exit NEMU", cmd_q   },
+  {	"si", "si [N]:N-step execution", cmd_si },//newsi
+  { "info", "info r:Print register status\n\tinfo w:Print watch information", cmd_info},//newinfo
+  { "x", "x N EXPR:Evaluate the expression EXPR and use the result as the starting memory Address, output N consecutive 4 bytes in hexadecimal form",cmd_x},//newx
+  { "p", "p EXPR:Find the value of the expression EXPR", cmd_p},//newp
 
   /* TODO: Add more commands */
 
@@ -92,7 +191,7 @@ static int cmd_help(char *args) {
   return 0;
 }
 
-void sdb_set_batch_mode() {
+void sdb_set_batch_mode() { 
   is_batch_mode = true;
 }
 

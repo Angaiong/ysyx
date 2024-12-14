@@ -19,9 +19,9 @@
  * Type 'man regex' for more information about POSIX regex functions.
  */
 #include <regex.h>
-
+#include <stdio.h>
 enum {
-  TK_NOTYPE = 256, TK_EQ,
+  TK_NOTYPE = 256, TK_EQ,TK_INT,
 
   /* TODO: Add more token types */
 
@@ -39,6 +39,12 @@ static struct rule {
   {" +", TK_NOTYPE},    // spaces
   {"\\+", '+'},         // plus
   {"==", TK_EQ},        // equal
+  {"\\-", '-'},         //minus
+  {"\\*", '*'},         //multiply
+  {"\\/", '/'},         //divide
+  {"\\(", '('},         //open parenthesis
+  {"\\)", ')'},         //close parenthesis
+  {"[0-9]+", TK_INT}    // integer
 };
 
 #define NR_REGEX ARRLEN(rules)
@@ -67,16 +73,19 @@ typedef struct token {
   char str[32];
 } Token;
 
-static Token tokens[32] __attribute__((used)) = {};
+static Token tokens[200] __attribute__((used)) = {};
 static int nr_token __attribute__((used))  = 0;
 
 static bool make_token(char *e) {
+  for (int i = 0; i < 32; i++) {
+    memset(&tokens[i], 0, sizeof(Token));//empty tokens
+  }
   int position = 0;
   int i;
   regmatch_t pmatch;
 
   nr_token = 0;
-
+  int here=0;//newhere
   while (e[position] != '\0') {
     /* Try all rules one by one. */
     for (i = 0; i < NR_REGEX; i ++) {
@@ -93,11 +102,18 @@ static bool make_token(char *e) {
          * to record the token in the array `tokens'. For certain types
          * of tokens, some extra actions should be performed.
          */
-
         switch (rules[i].token_type) {
-          default: TODO();
+          case TK_INT:
+            for(int a=0;here<position;here++,a++)
+            {
+              tokens[nr_token].str[a]=e[here];
+            }
+          default:
+          here=position;
+          tokens[nr_token].type=rules[i].token_type;
+          nr_token+=1;  
+          //TODO();
         }
-
         break;
       }
     }
@@ -107,19 +123,188 @@ static bool make_token(char *e) {
       return false;
     }
   }
-
   return true;
 }
+bool check_parentheses(int p, int q)//括号判断
+{
+  int flag=0;
+  int flagout=1;
+  if(tokens[p].type=='('&&tokens[q].type==')')//表达式是否被一对括号包围
+  { 
+    flagout=0;
+    //左右括号是否匹配
+    for(p=p+1;p<q;p++)
+    {
+      if(flag==-1)
+      {
+        return false;
+      }
+      else if(tokens[p].type=='(')
+      {
+        flag++;
+      }
+      else if(tokens[p].type==')')
+      {
+        flag--;
+      }
+    }
+    if(flag==0&&flagout==0)
+    {
+      return true;
+    }
+    else
+    {
+      return false;
+    }
+  }
+  return false;
+}
 
+typedef struct {
+  int op;
+  int op_type;
+} proer;
+int proflag=0;
+proer pro(int p,int q)//识别主运算符
+{
+  proflag=0;
+  int sel=1;
+  proer resulta={0,0};
+  proer resultb={0,0};
+  for(;p<q;p++)  
+  { 
+    sel=1;
+    if(tokens[p].type=='(')//排除括号内容
+    while(sel)
+    {
+      p++;
+      if(tokens[p].type==')')
+      {
+        sel-=1;
+      }else if(tokens[p].type=='(')
+      {
+        sel+=1;
+      }
+    }
+    //排除非运算符      //判断符号优先级
+    if(tokens[p].type=='*'||tokens[p].type=='/')
+    {
+      proflag=1;
+      resulta.op=p;
+      resulta.op_type=tokens[p].type;
+    }
+    if(tokens[p].type=='+'||tokens[p].type=='-')
+    {
+      proflag=1;
+      resultb.op=p;
+      resultb.op_type=tokens[p].type;
+    }
+  }
+  // printf("resulta.op=%d\nresultb.op=%d\n",resulta.op,resultb.op);
+  if(resultb.op==0)
+  {
+    return resulta;
+  }else
+  {
+    return resultb;
+  }
+}
 
+bool tf=true;
+uint32_t eval(int p, int q)//递归求值
+ {
+  tf=true;
+  if (p > q) {
+    /* Bad expression */
+    tf=false;
+    return 0;
+  }
+  if (p == q) 
+  {
+    /* Single token.
+    * For now this token should be a number.
+    * Return the value of the number.
+    */
+    if(tokens[p].type==TK_INT)
+    {
+      return atoi(tokens[p].str);
+    }else
+    {
+      tf=false;
+      return 0;
+    }
+  }
+  else if (check_parentheses(p, q) == true) {
+    /* The expression is surrounded by a matched pair of parentheses.
+     * If that is the case, just throw away the parentheses.
+     */
+    return eval(p + 1, q - 1);
+  }
+  else {
+    // op = the position of 主运算符 in the token expression;
+    int op=0;int op_type=0;
+
+    proer result=pro(p,q);
+    if(proflag==1)
+    {
+      op_type=result.op_type;
+      op=result.op;
+      int original_p = p;
+      int original_q = q;
+      int val1=0;int val2=0;
+
+      val1 = eval(p, op - 1);
+      p = original_p;
+      q = original_q;
+      val2 = eval(op + 1, q);
+      switch (op_type) 
+      {
+        case '+': return val1 + val2;
+        case '-': return val1 - val2;
+        case '*': return val1 * val2;
+        case '/': 
+        if (val2 == 0) 
+        {
+          printf("Error: Division by zero\n");
+          tf = false;
+          return 0; // 或者返回一个特定的错误值
+        } 
+        else 
+        {
+          return val1 / val2;
+        }
+        default: assert(0);
+      }
+    }
+  }
+  tf=false;
+  return 0;
+}
+void remove_spaces(char* str) {
+    int i, j = 0;
+    int len = strlen(str);
+    for (i = 0; i < len; i++) {
+        if (str[i] != ' ') {
+            str[j++] = str[i];
+        }
+    }
+    str[j] = '\0'; // Null-terminate the modified string
+}//new remove_spaces
 word_t expr(char *e, bool *success) {
+  remove_spaces(e);//new remove_spaces
   if (!make_token(e)) {
     *success = false;
     return 0;
   }
-
   /* TODO: Insert codes to evaluate the expression. */
-  TODO();
+  // eval(1,nr_token);
+  int expr_result=eval(0,nr_token-1);
+  if(tf==true)
+  printf(":%d\n",expr_result);
+  else
+  printf("error\n");
+  // TODO();
 
-  return 0;
+  // return 0;
+  return expr_result;//for test
 }
